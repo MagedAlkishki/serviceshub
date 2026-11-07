@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ServiceHub - QR Code Generator</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/theme.js"></script>
+</head>
+<body>
+    <nav>
+        <a class="brand" href="/dashboard.html">ServiceHub</a>
+        <div class="links">
+            <a href="/dashboard.html">&larr; Dashboard</a>
+            <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark mode">&#127761;</button>
+        </div>
+    </nav>
+
+    <main>
+        <div class="card" id="locked-card" style="display: none;">
+            <h1>QR Code Generator</h1>
+            <p class="subtitle">This service is locked.</p>
+            <div class="message error" style="display: block;">Subscribe from your dashboard to use this tool.</div>
+            <a href="/dashboard.html" class="foot-link" style="display:block; margin-top: 20px;">&larr; Back to dashboard</a>
+        </div>
+
+        <div class="card" id="tool-card" style="display: none;">
+            <h1>QR Code Generator</h1>
+            <p class="subtitle">Enter text or a URL and get a QR code image.</p>
+
+            <form id="qr-form">
+                <label for="text">Text or URL</label>
+                <input type="text" id="text" required placeholder="https://example.com">
+                <button type="submit" class="primary">Generate</button>
+            </form>
+
+            <div id="message" class="message"></div>
+
+            <div class="qr-result" id="qr-result" style="display: none;">
+                <img id="qr-image" alt="Generated QR code">
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const lockedCard = document.getElementById("locked-card");
+        const toolCard = document.getElementById("tool-card");
+        const form = document.getElementById("qr-form");
+        const message = document.getElementById("message");
+        const qrResult = document.getElementById("qr-result");
+        const qrImage = document.getElementById("qr-image");
+
+        async function checkAccess() {
+            const response = await fetch("/api/auth/me");
+            if (!response.ok) {
+                window.location.href = "/index.html";
+                return;
+            }
+            const user = await response.json();
+            if (user.subscribed) {
+                toolCard.style.display = "block";
+            } else {
+                lockedCard.style.display = "block";
+            }
+        }
+
+        form.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            message.className = "message";
+            qrResult.style.display = "none";
+
+            const text = document.getElementById("text").value;
+
+            try {
+                const response = await fetch("/api/services/qr?text=" + encodeURIComponent(text));
+                if (!response.ok) {
+                    const body = await response.json();
+                    throw new Error(body.error || "Couldn't generate a QR code");
+                }
+                const blob = await response.blob();
+                qrImage.src = URL.createObjectURL(blob);
+                qrResult.style.display = "block";
+            } catch (err) {
+                message.textContent = err.message;
+                message.className = "message error";
+            }
+        });
+
+        checkAccess();
+    </script>
+</body>
+</html>

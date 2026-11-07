@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: serviceshub
+  datasource:
+    url: jdbc:h2:mem:serviceshub
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+server:
+  port: 8080

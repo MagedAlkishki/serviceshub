@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ServiceHub - Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/theme.js"></script>
+</head>
+<body>
+    <nav>
+        <a class="brand" href="/dashboard.html">ServiceHub</a>
+        <div class="links">
+            <a href="#" id="logout-link">Log out</a>
+            <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark mode">&#127761;</button>
+        </div>
+    </nav>
+
+    <main>
+        <div class="card">
+            <h1>Your services</h1>
+            <p class="subtitle" id="email-line">&nbsp;</p>
+
+            <div class="status-row">
+                <span>Subscription</span>
+                <span id="sub-badge" class="badge locked">Locked</span>
+            </div>
+
+            <button id="subscribe-btn" class="primary" style="display: none;">Subscribe</button>
+
+            <div id="message" class="message"></div>
+
+            <div style="margin-top: 32px;">
+                <div class="service-card">
+                    <div>
+                        <div class="name">QR Code Generator</div>
+                        <div class="desc">Turn any text or URL into a QR code image.</div>
+                    </div>
+                    <div>
+                        <span id="qr-badge" class="badge locked">Locked</span>
+                        <a id="qr-link" href="/qr.html" class="secondary" style="display: none; text-decoration: none; color: var(--brand); margin-left: 8px;">Open &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const emailLine = document.getElementById("email-line");
+        const subBadge = document.getElementById("sub-badge");
+        const qrBadge = document.getElementById("qr-badge");
+        const qrLink = document.getElementById("qr-link");
+        const subscribeBtn = document.getElementById("subscribe-btn");
+        const message = document.getElementById("message");
+
+        function render(user) {
+            emailLine.textContent = user.email;
+            if (user.subscribed) {
+                subBadge.textContent = "Active";
+                subBadge.className = "badge unlocked";
+                qrBadge.textContent = "Unlocked";
+                qrBadge.className = "badge unlocked";
+                qrLink.style.display = "inline";
+                subscribeBtn.style.display = "none";
+            } else {
+                subBadge.textContent = "Locked";
+                subBadge.className = "badge locked";
+                qrBadge.textContent = "Locked";
+                qrBadge.className = "badge locked";
+                qrLink.style.display = "none";
+                subscribeBtn.style.display = "block";
+            }
+        }
+
+        async function loadMe() {
+            const response = await fetch("/api/auth/me");
+            if (!response.ok) {
+                window.location.href = "/index.html";
+                return;
+            }
+            render(await response.json());
+        }
+
+        subscribeBtn.addEventListener("click", async function () {
+            message.className = "message";
+            try {
+                const response = await fetch("/api/subscription/subscribe", { method: "POST" });
+                if (!response.ok) {
+                    const body = await response.json();
+                    throw new Error(body.error || "Couldn't subscribe");
+                }
+                render(await response.json());
+                message.textContent = "Subscribed! The QR Code Generator is now unlocked.";
+                message.className = "message success";
+            } catch (err) {
+                message.textContent = err.message;
+                message.className = "message error";
+            }
+        });
+
+        document.getElementById("logout-link").addEventListener("click", async function (event) {
+            event.preventDefault();
+            await fetch("/api/auth/logout", { method: "POST" });
+            window.location.href = "/index.html";
+        });
+
+        loadMe();
+    </script>
+</body>
+</html>
